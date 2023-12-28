@@ -1,0 +1,88 @@
+volumes:
+  zrok_env: {}
+
+services:
+  auto:
+    # profiles:
+    #   - ziti
+    environment:
+      - CLI_ARGS=--allow-code --xformers --enable-insecure-extension-access --api
+    depends_on:
+      - ziti
+  invoke:
+    profiles:
+      - ziti
+    depends_on:
+      - ziti
+  comfy:
+    # profiles:
+    #   - ziti
+    depends_on:
+      - ziti
+
+  # set file ownership
+  zrok-init:
+    image: busybox
+    # matches uid:gid of "nobody" in zrok container image
+    command: chown -Rc 65534:65534 /mnt/
+    user: root
+    volumes:
+      - zrok_env:/mnt
+
+  # enable zrok environment
+  zrok-enable:
+    image: ${ZROK_CONTAINER_IMAGE:-docker.io/openziti/zrok}
+    depends_on:
+      zrok-init:
+        condition: service_completed_successfully
+    entrypoint: zrok-enable.bash
+    volumes:
+      - zrok_env:/mnt
+    environment:
+      STATE_DIRECTORY: /mnt
+      ZROK_ENABLE_TOKEN:
+      ZROK_API_ENDPOINT: https://ctrl.ken.demo.openziti.org
+      ZROK_ENVIRONMENT_NAME:  stable-diffusion-webui
+
+  # reserve zrok frontend subdomain and start sharing the target
+  zrok-share:
+    profiles:
+      - zrok
+    image: ${ZROK_CONTAINER_IMAGE:-docker.io/openziti/zrok}
+    restart: unless-stopped
+    entrypoint: zrok-share.bash
+    depends_on:
+      zrok-enable:
+        condition: service_completed_successfully
+    volumes:
+      - zrok_env:/mnt
+      - ./zrok.Caddyfile:/Caddyfile
+    environment:
+      # internal configuration
+      STATE_DIRECTORY: /mnt  # zrok homedir in container
+      BCRYPT_HASH:           # Caddy reads this to set basic auth
+
+      # most relevant options
+      ZROK_UNIQUE_NAME:     stable
+      ZROK_BACKEND_MODE:    caddy
+      ZROK_TARGET:          /Caddyfile
+      ZROK_INSECURE:        # "--insecure" if proxy target has unverifiable TLS server certificate
+      ZROK_OAUTH_PROVIDER:  # google, github
+      ZROK_OAUTH_EMAILS:    # allow space-separated list of OAuth email addresses or @domain.tld
+      ZROK_BASIC_AUTH:      # username:password, mutually-exclusive with ZROK_OAUTH_PROVIDER
+
+      # least relevant options
+      ZROK_VERBOSE:           # "--verbose"
+      ZROK_SHARE_OPTS:        # additional arguments to "zrok reserve public" command
+      ZROK_FRONTENDS:         # "public"
+      PFXLOG_NO_JSON: "true"  # suppress JSON logging format
+
+  ziti:
+    profiles:
+      - ziti
+    image: openziti/ziti-host
+    restart: unless-stopped
+    environment:
+      ZITI_IDENTITY_JSON:
+
+

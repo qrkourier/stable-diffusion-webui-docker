@@ -1,0 +1,20 @@
+
+# Multiple Backends Example
+#
+{
+    # no listen on 2019/tcp with admin API
+    admin off
+}
+http:// {
+    # Bind to the zrok share
+    bind {{ .ZrokBindAddress }}
+
+    # All other traffic
+    handle_path /* {
+        basicauth {
+            guest {$BCRYPT_HASH}
+        }
+        reverse_proxy http://auto:7860
+    }
+
+}
