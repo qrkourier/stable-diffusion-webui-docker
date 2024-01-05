@@ -4,7 +4,7 @@ x-base_service: &base_service
     ports:
       - "${WEBUI_PORT:-7860}:7860"
     volumes:
-      - &v1 ./data:/data
+      - &v1 ~/Downloads/Cache/stable-diffusion-webui-data:/data
       - &v2 ./output:/output
     stop_signal: SIGKILL
     tty: true

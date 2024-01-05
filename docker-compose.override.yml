@@ -10,15 +10,18 @@ services:
     depends_on:
       - ziti
   invoke:
-    profiles:
-      - ziti
-    depends_on:
-      - ziti
-  comfy:
     # profiles:
     #   - ziti
     depends_on:
       - ziti
+  comfy:
+    profiles:
+      - ziti
+    depends_on:
+      - ziti
+    environment:
+      - CLI_ARGS=--preview-method auto
+    # user: "1000:1000"  # rm: cannot remove '/root/.cache': Permission denied
 
   # set file ownership
   zrok-init:
@@ -80,7 +83,7 @@ services:
   ziti:
     profiles:
       - ziti
-    image: openziti/ziti-host
+    image: kbinghamnetfoundry/ziti-host:0.22.20
     restart: unless-stopped
     environment:
       ZITI_IDENTITY_JSON:
