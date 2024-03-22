@@ -83,7 +83,7 @@ services:
   ziti:
     profiles:
       - ziti
-    image: kbinghamnetfoundry/ziti-host:0.22.20
+    image: openziti/ziti-host
     restart: unless-stopped
     environment:
       ZITI_IDENTITY_JSON:
