@@ -1,12 +1,29 @@
 volumes:
   zrok_env: {}
 
+x-base_service2: &base_service2
+    ports:
+      - "${WEBUI_PORT2:-7861}:7861"
+    volumes:
+      - ~/Downloads/Cache/stable-diffusion-webui-data:/data
+      - ./output:/output
+    stop_signal: SIGKILL
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+              - driver: nvidia
+                device_ids: ['0']
+                capabilities: [compute, utility]
+
 services:
   auto:
+    <<: *base_service2
     # profiles:
     #   - ziti
     environment:
-      - CLI_ARGS=--allow-code --xformers --enable-insecure-extension-access --api
+      - CLI_ARGS=--allow-code --medvram --xformers --enable-insecure-extension-access --api --port ${WEBUI_PORT2:-7861}
     depends_on:
       - ziti
   invoke:
@@ -15,8 +32,8 @@ services:
     depends_on:
       - ziti
   comfy:
-    profiles:
-      - ziti
+    # profiles:
+    #   - ziti
     depends_on:
       - ziti
     environment:
@@ -25,6 +42,8 @@ services:
 
   # set file ownership
   zrok-init:
+    profiles:
+      - zrok
     image: busybox
     # matches uid:gid of "nobody" in zrok container image
     command: chown -Rc 65534:65534 /mnt/
@@ -34,6 +53,8 @@ services:
 
   # enable zrok environment
   zrok-enable:
+    profiles:
+      - zrok
     image: ${ZROK_CONTAINER_IMAGE:-docker.io/openziti/zrok}
     depends_on:
       zrok-init:

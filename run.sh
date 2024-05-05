@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euxo pipefail;
-PROFILE=ziti
-docker compose --profile $PROFILE kill --remove-orphans;
-docker compose --profile download up --build;
-docker compose --profile $PROFILE up --build --detach --force-recreate;
-docker compose --profile $PROFILE logs --follow;
+PROFILES="--profile ziti --profile comfy --profile auto"
+docker compose $PROFILES kill --remove-orphans;
+# docker compose --profile download up --build;
+docker compose $PROFILES up --build --detach --force-recreate;
+docker compose $PROFILES logs --follow;
